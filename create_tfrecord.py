@@ -3,7 +3,7 @@ import tensorflow as tf
 from dataset_utils import _dataset_exists, _get_filenames_and_classes, write_label_file, _convert_dataset
 
 #====================================================DEFINE YOUR ARGUMENTS=======================================================================
-flags = tf.app.flags
+flags = tf.compat.v1.app.flags
 
 #State your dataset directory
 flags.DEFINE_string('dataset_dir', None, 'String: Your dataset directory')

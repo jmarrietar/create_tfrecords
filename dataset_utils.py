@@ -3,8 +3,6 @@ import os
 import sys
 import tensorflow as tf
 
-slim = tf.contrib.slim
-
 #State the labels filename
 LABELS_FILENAME = 'labels.txt'
 #===================================================  Dataset Utils  ===================================================
@@ -54,7 +52,7 @@ def write_label_file(labels_to_class_names, dataset_dir,
     filename: The filename where the class names are written.
   """
   labels_filename = os.path.join(dataset_dir, filename)
-  with tf.gfile.Open(labels_filename, 'w') as f:
+  with tf.io.gfile.GFile(labels_filename, 'w') as f:
     for label in labels_to_class_names:
       class_name = labels_to_class_names[label]
       f.write('%d:%s\n' % (label, class_name))
@@ -70,7 +68,7 @@ def has_labels(dataset_dir, filename=LABELS_FILENAME):
   Returns:
     `True` if the labels file exists and `False` otherwise.
   """
-  return tf.gfile.Exists(os.path.join(dataset_dir, filename))
+  return tf.io.gfile.exists(os.path.join(dataset_dir, filename))
 
 
 def read_label_file(dataset_dir, filename=LABELS_FILENAME):
@@ -84,7 +82,7 @@ def read_label_file(dataset_dir, filename=LABELS_FILENAME):
     A map from a label (integer) to class name.
   """
   labels_filename = os.path.join(dataset_dir, filename)
-  with tf.gfile.Open(labels_filename, 'r') as f:
+  with tf.io.gfile.GFile(labels_filename, 'r') as f:
     lines = f.read().decode()
   lines = lines.split('\n')
   lines = filter(None, lines)
@@ -103,7 +101,7 @@ class ImageReader(object):
 
   def __init__(self):
     # Initializes function that decodes RGB JPEG data.
-    self._decode_jpeg_data = tf.placeholder(dtype=tf.string)
+    self._decode_jpeg_data = tf.compat.v1.placeholder(dtype=tf.string)
     self._decode_jpeg = tf.image.decode_jpeg(self._decode_jpeg_data, channels=3)
 
   def read_image_dims(self, sess, image_data):
@@ -133,8 +131,8 @@ def _get_filenames_and_classes(dataset_dir):
   # print 'subdir:', [name for name in os.listdir(dataset_dir)]
   # dataset_main_folder_list = []
   # for name in os.listdir(dataset_dir):
-  # 	if os.path.isdir(name):
-  # 		dataset_main_folder_list.append(name)
+  #   if os.path.isdir(name):
+  #     dataset_main_folder_list.append(name)
   dataset_main_folder_list = [name for name in os.listdir(dataset_dir) if os.path.isdir(os.path.join(dataset_dir,name))]
   dataset_root = os.path.join(dataset_dir, dataset_main_folder_list[0])
   directories = []
@@ -177,13 +175,13 @@ def _convert_dataset(split_name, filenames, class_names_to_ids, dataset_dir, tfr
   with tf.Graph().as_default():
     image_reader = ImageReader()
 
-    with tf.Session('') as sess:
+    with tf.compat.v1.Session('') as sess:
 
       for shard_id in range(_NUM_SHARDS):
         output_filename = _get_dataset_filename(
             dataset_dir, split_name, shard_id, tfrecord_filename = tfrecord_filename, _NUM_SHARDS = _NUM_SHARDS)
 
-        with tf.python_io.TFRecordWriter(output_filename) as tfrecord_writer:
+        with tf.io.TFRecordWriter(output_filename) as tfrecord_writer:
           start_ndx = shard_id * num_per_shard
           end_ndx = min((shard_id+1) * num_per_shard, len(filenames))
           for i in range(start_ndx, end_ndx):
@@ -192,7 +190,7 @@ def _convert_dataset(split_name, filenames, class_names_to_ids, dataset_dir, tfr
             sys.stdout.flush()
 
             # Read the filename:
-            image_data = tf.gfile.FastGFile(filenames[i], 'rb').read()
+            image_data = tf.io.gfile.GFile(filenames[i], 'rb').read()
             height, width = image_reader.read_image_dims(sess, image_data)
 
             class_name = os.path.basename(os.path.dirname(filenames[i]))
@@ -210,6 +208,6 @@ def _dataset_exists(dataset_dir, _NUM_SHARDS, output_filename):
     for shard_id in range(_NUM_SHARDS):
       tfrecord_filename = _get_dataset_filename(
           dataset_dir, split_name, shard_id, output_filename, _NUM_SHARDS)
-      if not tf.gfile.Exists(tfrecord_filename):
+      if not tf.io.gfile.exists(tfrecord_filename):
         return False
   return True
